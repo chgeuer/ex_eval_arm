@@ -59,3 +59,9 @@ Resource.subscription([], Context.new() |> Context.with_deployment_context(deplo
 
 "sample_files/automation.json" |> DemoUtil.transform(deploymentContext, %{"adminPassword" => "SuperSecret123.-##"})
 ```
+
+## Implementation Status
+
+[x] All numeric / logical / array&objects / comparison functions
+[ ] The `reference()` function needs more [dummy data](lib/evaluator/dummy_data.json) for scenarios where the users are not signed-in to their real subscription.
+[ ] The `copyIndex()` function currently doesn't duplicate nodes in the document.
