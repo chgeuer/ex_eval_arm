@@ -1,0 +1,227 @@
+{
+    "[[ true]": "[[ true]",
+    "true" : "true",
+    "['true']": "true",
+    "[true]": true,
+    "['a''']": "a'",
+    "['\"']": "\"",
+    "['''']": "'",
+    "['''''']": "''",
+    "['''''''']": "'''",
+    "['a\"']": "a\"",
+    "321": "321",
+    "['321']": "321",
+    "'321\"'": "'321\"'",
+    "[321]": 321,
+    "[-321]": -321,
+
+    "[int('000')]": 0,
+    "[int('13')]": 13,
+    "[int('-1013')]": -1013,
+    
+    "[float('13.432')]": 13.432,
+    "[float(13)]": 13.0,
+    "[float(substring('one 3.1415 three', 4, 6))]": 3.1415,
+    "[float(take(skip('one 3.1415 three', 4), 6))]": 3.1415,
+
+    "[bool('false')]": false,
+    "[bool('FALSE')]": false,
+    "[bool('true')]": true,
+    "[bool('TrUe')]": true,
+    "[bool('TRUE')]": true,
+    "[bool(-100)]": true,
+    "[bool(-1)]": true,
+    "[bool(0)]": false,
+    "[bool(1)]": true,
+    "[bool(2)]": true,
+    "[bool(100)]": true,
+
+    "[add(-4, 3)]": -1,
+    "[add(add(1, 2), 3)]": 6,
+    "[sub(10, 12)]": -2,
+    "[sub(10, sub(5, 3))]": 8,
+    "[mul(2, mul(3, 4))]": 24,
+    "[div(8, 3)]": 2,
+    "[mod(7, 3)]": 1,
+    "[mod(1000, 3)]": 1,
+    
+    "[and(true, false, true, true, true, true)]": false,
+    "[and(true, true)]": true,
+    "[and(true, true, true)]": true,
+
+    "[or(false, false, false, or(false, false))]": false,
+    "[or(true, false, true)]": true,
+
+    "[not(false)]": true,
+    "[not(true)]": false,
+
+    "[array('Foo')]": ["Foo"],
+    "[array(2)]": [2],
+    "[array(true)]": [true],
+
+    "[createArray( 1, 2, 3, true, 'hello' )]": [1, 2, 3, true, "hello"],
+    "[createArray('a', 'b', 'c')]": ["a", "b", "c"],
+    "[createArray(0, add(1, 2), true, concat('he', 'llo'), createArray(11,12))]": [0, 3, true, "hello", [11, 12]],
+    "[createArray(1, 2, array(3))]": [1, 2, [3]],
+    "[createArray(1, 2, createArray(3, 4))]": [1, 2, [3, 4]],
+    "[createArray(10, 11, 12, 13, 14)[0]]": 10,
+    "[createArray(10, 11, 12, 13, 14)[2]]": 12,
+
+    "[base64('one, two, three')]": "b25lLCB0d28sIHRocmVl",
+    "[base64ToJson(base64(string(json('{\"one\":\"a\",\"two\":[1,true,\"b\"]}'))))]": {"one": "a", "two": [1, true, "b"]},
+    "[base64ToString('b25lLCB0d28sIHRocmVl')]": "one, two, three",
+    "[base64ToString(base64('one, two, three'))]": "one, two, three",
+
+    "[concat( createArray(false, true, 'two'), createArray(3, 4), array(5)  )]": [false, true, "two", 3, 4, 5],
+    "[concat('''', 'Hello, '   , concat('Wor' , concat('ld', '!''') ) , '' )]": "'Hello, World!'",
+
+    "[contains('One Two Three', 'two')]": false,
+    "[contains('One Two Three', 'Two')]": true,
+    "[contains(createArray(1, 3, 'five'), 'five')]": true,
+    "[contains(createArray(1, 3, 'five'), 2)]": false,
+    "[contains(createArray(1, 3, 'five'), 3)]": true,
+    "[contains(json('{\"a\": 1}'), 'a')]": true,
+    "[contains(json('{\"a\": 1}'), 'A')]": true,
+    "[contains(json('{\"a\": 1}'), 'b')]": false,
+    "[contains(json('{\"a\": {\"b\": 1}}'), 'b')]": false,
+    "[contains(json('{\"a\": {\"b\": 1}}').a, 'b')]": true,
+    "[contains(range(1000, 100), 1050)]": true,
+    "[contains(range(1000, 100), 1500)]": false,
+   
+    "[dataUri('Hello')]": "data:text/plain;charset=utf8;base64,SGVsbG8=",
+    "[dataUriToString('data:;base64,SGVsbG8sIFdvcmxkIQ==')]": "Hello, World!",
+    
+    "[empty('')]": true,
+    "[empty('1')]": false,
+    "[empty(createArray())]": true,
+    "[empty(createArray(1))]": false,
+    "[empty(json('{\"a\": 1}'))]": false,
+    "[empty(json('{}'))]": true,
+
+    "[endsWith('Hello World', 'there')]": false,
+    "[endsWith('Hello World', 'World')]": true,
+    "[endsWith('Hello WORLD', 'world')]": true,
+
+    "[equals( concat(   createArray(1, true, 'three'), array(4) ) , concat(   array(1), createArray( true, 'three', 4) ) )]": true,
+    "[equals('foo', 'bar')]": false,
+    "[equals('foo', concat('f', 'o', 'o'))]": true,
+    "[equals(1, 1)]": true,
+    "[equals(1, 3)]": false,
+    "[equals(json('{\"a\": 1, \"b\": { \"c\": true, \"d\": \"e\", \"somemore\": 3}}'), json('{\"b\": { \"d\": \"e\", \"c\": true}, \"a\": 1}'))]": false,
+    "[equals(json('{\"a\": 1, \"b\": { \"c\": true, \"d\": \"e\"}}'), json('{\"b\": { \"d\": \"e\", \"c\": true}, \"a\": 1}'))]": true,
+
+    "[greater(1, 2)]": false,
+    "[greater(2, 2)]": false,
+    "[greater(3, 2)]": true,
+
+    "[greaterOrEquals(1, 2)]": false,
+    "[greaterOrEquals(2, 2)]": true,
+    "[greaterOrEquals(3, 2)]": true,
+
+    "[less(1, 2)]": true,
+    "[less(2, 2)]": false,
+    "[less(3, 2)]": false,
+
+    "[lessOrEquals(1, 2)]": true,
+    "[lessOrEquals(2, 2)]": true,
+    "[lessOrEquals(3, 2)]": false,
+
+    "[first('One two three')]": "O",
+    "[first(createArray(1, 2, 3))]": 1,
+    "[first(skip('One Two Three', 4))]": "T",
+    "[first(skip(createArray(1, 2, 'this one', 4, 10), 2))]": "this one",
+
+    "[last('One two three')]": "e",
+    "[last(createArray(1, 2, 3))]": 3,
+
+    "[if(false, 1, 'two')]": "two",
+    "[if(true, 1, 'two')]": 1,
+
+    "[indexOf('abcdef', 'CD')]": 2,
+    "[indexOf('abcdef', 'z')]": -1,
+    "[indexOf('test', 't')]": 0,
+
+    "[lastIndexOf('abcdef', 'AB')]": 0,
+    "[lastIndexOf('abcdef', 'z')]": -1,
+    "[lastIndexOf('test', 't')]": 3,
+
+    "[intersection(json('{\"one\": \"a\", \"two\": \"b\", \"three\": \"c\"}'), json('{\"one\": \"a\", \"two\": \"z\", \"three\": \"c\"}'))]": {"one": "a", "three": "c"},
+
+    "[union(json('{\"one\": \"a\", \"two\": \"b\", \"three\": \"c1\"}'), json('{\"three\": \"c2\", \"four\": \"d\", \"five\": \"e\"}'))]": {"one": "a", "two": "b", "three": "c2", "four": "d", "five": "e"},
+
+    "[json(' { \\\"n\\\": 1, \\\"b\\\": false, \\\"s\\\" : \\\"Hello\\\", \\\"o\\\": { \\\"a\\\": 2 } } ').n]": 1,
+    "[json(' { \\\"n\\\": 1, \\\"b\\\": false, \\\"s\\\" : \\\"Hello\\\", \\\"o\\\": { \\\"a\\\": 2 } } ')]": {"n": 1, "s": "Hello", "b": false, "o": {"a": 2}},
+    "[json(' { \\\"n\\\": 1, \\\"b\\\": false, \\\"s\\\" : \\\"Hello\\\", \\\"o\\\": { \\\"a\\\": { \\\"b\\\": { \\\"c\\\": 2 } } } } ').o.a.b.c]": 2,
+    "[json(' { \\\"n\\\": 1, \\\"b\\\": false, \\\"s\\\" : \\\"Hello\\\", \\\"o\\\": { \\\"a\\\": { \\\"b\\\": { \\\"c\\\": 2 } } } } ').o[ 'a'  ].b[  'c'         ]]": 2,
+    "[json(' { \\\"n\\\": 1, \\\"b\\\": false, \\\"s\\\" : \\\"Hello\\\", \\\"o\\\": { \\\"a\\\": { \\\"b\\\": { \\\"c\\\": 2 } } } } ')['o']['a']['b']['c']]": 2,
+    "[json('2')]": 2,
+    "[json('[ 1, 2, 3, true, \"hello\"]')]": [1, 2, 3, true, "hello"],
+    "[json('[0, 3, true, \"hello\", [11, 12]]')]": [0, 3, true, "hello", [11, 12]],
+    "[json('\"foo\"')]": "foo",
+    "[json('\\\"foo\\\"')]": "foo",
+    "[json('true')]": true,
+    "[json('{}')]": {},
+
+    "[length('One Two Three')]": 13,
+    "[length(createArray(   createArray(1, 2), createArray( 3, 4)))]": 2,
+    "[length(createArray(1, 2, 3, true, ''))]": 5,
+    "[length(json('[[1,2], [3,4]]'))]": 2,
+    "[length(json('{\"propA\":\"one\",\"propB\": \"two\",\"propC\": \"three\",\"propD\": {\"propD-1\": \"sub\",\"propD-2\": \"sub\"}}'))]" : 4,
+
+    "[max(createArray(max(createArray(0,3)),   2    ,5,4, -1))]": 5,
+    "[max(max(0,3),   2    ,5,4, -1)]": 5,
+
+    "[min(0,3,2,5,4, -1)]": -1,
+    "[min(createArray(0,3,2,5,4, -1))]": -1,
+
+    "[padLeft(string(123), 10, '0')]": "0000000123",
+
+    "[range(5, 3)]": [5, 6, 7],
+    "[range(-2, 5)]": [-2, -1, 0, 1, 2],
+
+    "[replace('123-123-1234', '-', '')]": "1231231234",
+    "[replace('123-123-1234', '1234', 'xxxx')]": "123-123-xxxx",
+
+    "[skip('one two three', 8)]": "three",
+    "[skip('one two three', length('one two '))]": "three",
+    "[skip(createArray(1, 2, 3, 4, 5, 6), 2)]": [3, 4, 5, 6],
+
+    "[split('one,two,three', ',')]": ["one", "two", "three"],
+    "[split('one;two,three', createArray(',', ';'))]": ["one", "two", "three"],
+    "[split('one;two,three', json('[\",\",\";\"]'))]": ["one", "two", "three"],
+
+    "[startsWith('Hello World', 'Hello')]": true,
+    "[startsWith('HELLO World', 'hello')]": true,
+    "[startsWith('Hello World', 'hola')]": false,
+
+    "[string(2)]": "2",
+    "[string(json('[[1,2], [3,\"a\"]]'))]": "[[1,2],[3,\"a\"]]",
+    "[string(json('\"Example Text\"'))]": "\"Example Text\"",
+    "[string(json('{   \"a\": 1}'))]": "{\"a\":1}",
+    "[string(range(5, 3))]": "[5,6,7]",
+    "[string(true)]": "true",
+
+    "[trim('    one two three   ')]": "one two three",
+    "[trim(' one two   three')]": "one two   three",
+
+    "[take('one two three', 7)]": "one two",
+    "[take(createArray(1, 'two', true), 3)]": [1, "two", true],
+    "[take(skip('one two three', 4), 3)]": "two",
+
+    "[substring('one two three', 4, 3)]": "two",
+
+    "[toLower('One Two Three')]": "one two three",
+    "[toUpper('One Two Three')]": "ONE TWO THREE",
+
+    "[guid('foo')]": "2563953c-40ff-5bf6-8965-705c436ec4e8",
+    "[guid('foo', 'bar')]": "d6c1d90d-ea80-58e2-b8db-599b0a769e00",
+
+    "[uniqueString('a')]": "xVkdDM94PBvkQ",
+    "[uniqueString('a', 'b', 'c')]": "eZlZFIGfCWco1",
+    "[uniqueString('b')]": "f44rChJYmDYX3",
+    "[uniqueString(json('\"abc\"'))]": "NzqfOpAs9WEAO",
+
+    "[uri('http://contoso.com/resources/', 'nested/azuredeploy.json')]": "http://contoso.com/resources/nested/azuredeploy.json",
+    "[uriComponent(uri('http://contoso.com/resources/', 'nested/azuredeploy.json'))]": "http%3A%2F%2Fcontoso.com%2Fresources%2Fnested%2Fazuredeploy.json",
+    "[uriComponentToString(uriComponent(uri('http://contoso.com/resources/', 'nested/azuredeploy.json')))]": "http://contoso.com/resources/nested/azuredeploy.json"
+}

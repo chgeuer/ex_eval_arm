@@ -1,0 +1,54 @@
+{
+    "Microsoft.ManagedIdentity/userAssignedIdentities" : { 
+        "id": "/subscriptions/724467b5-bee4-484b-bf13-d6a5505d2b51/resourcegroups/longterm/providers/Microsoft.ManagedIdentity/userAssignedIdentities/gagafoo-identity",
+        "name": "gagafoo-identity",
+        "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+        "location": "westeurope",
+        "tags": {},
+        "properties": {
+            "tenantId": "942023a6-efbe-4d97-a72d-532edeadbeef",
+            "principalId": "deadbeef-7a0b-43e8-959d-3168886d1e6a",
+            "clientId": "170615ed-5deb-4381-aa62-f8b8deadbeef"
+        }
+    },
+    "Microsoft.Storage/storageAccounts": {
+        "type": "Microsoft.Storage/storageAccounts",
+        "sku": {
+          "name": "Standard_RAGRS",
+          "tier": "Standard"
+        },
+        "kind": "StorageV2",
+        "id": "/subscriptions/724467b5-bee4-484b-bf13-d6a5505d2b51/resourceGroups/longterm/providers/Microsoft.Storage/storageAccounts/chgeuer",
+        "name": "chgeuer",
+        "location": "westeurope",
+        "properties": {
+          "networkAcls": { "bypass": "AzureServices", "virtualNetworkRules": [], "ipRules": [], "defaultAction": "Allow" },
+          "supportsHttpsTrafficOnly": false,
+          "encryption": {
+            "keySource": "Microsoft.Storage",
+            "services": {
+              "file": { "enabled": true, "lastEnabledTime": "2017-12-10T08:58:46.2946180Z" },
+              "blob": { "enabled": true, "lastEnabledTime": "2017-12-10T08:58:46.2946180Z" }
+            }
+          },
+          "accessTier": "Hot",
+          "provisioningState": "Succeeded",
+          "creationTime": "2016-09-23T07:43:23.9501954Z",
+          "primaryEndpoints": {
+            "blob": "https://chgeuer.blob.core.windows.net/",
+            "queue": "https://chgeuer.queue.core.windows.net/",
+            "table": "https://chgeuer.table.core.windows.net/",
+            "file": "https://chgeuer.file.core.windows.net/"
+          },
+          "primaryLocation": "westeurope",
+          "statusOfPrimary": "available",
+          "secondaryLocation": "northeurope",
+          "statusOfSecondary": "available",
+          "secondaryEndpoints": {
+            "blob": "https://chgeuer-secondary.blob.core.windows.net/",
+            "queue": "https://chgeuer-secondary.queue.core.windows.net/",
+            "table": "https://chgeuer-secondary.table.core.windows.net/"
+          }
+        }
+      }
+}
