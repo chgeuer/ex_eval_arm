@@ -1,10 +1,44 @@
 # Microsoft.ARM.Evaluator
 
-# demo
+## How to install
+
+- Install Erlang from [erlang.org](https://www.erlang.org/downloads)
+- Install Elixir from [elixir-lang.org](https://elixir-lang.org/install.html)
+
+### Clone the code
+
+```bash
+git clone https://github.com/chgeuer/ex_microsoft_arm_evaluator
+cd ex_microsoft_arm_evaluator
+```
+
+### Fetch required Elixir packages
+
+```bash
+mix deps.get
+```
+
+### Compile the whole thing
+
+```bash
+mix compile
+```
+
+### On Windows, set this env variable
 
 ```cmd
-set iex_with_werl=
+set iex_with_werl=true
+```
+
+### Launch the interactive Elixir shell
+
+```bash
 iex -S mix
+```
+
+## demo time
+
+```cmd
 start https://microsoft.com/devicelogin
 ```
 
