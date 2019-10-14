@@ -1,5 +1,7 @@
 # Microsoft.ARM.Evaluator
 
+Check the blog article here: [blog.geuer-pollmann.de/blog/2019/10/14/locally-evaluating-azure-arm-templates](https://blog.geuer-pollmann.de/blog/2019/10/14/locally-evaluating-azure-arm-templates/) ...
+
 ## How to install
 
 - Install Erlang from [erlang.org](https://www.erlang.org/downloads)
