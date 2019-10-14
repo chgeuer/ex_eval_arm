@@ -47,11 +47,13 @@ alias Microsoft.Azure.TemplateLanguageExpressions.{Resource, Context, Deployment
 
 login_cred = DemoUtil.login()
 
-deploymentContext = %DeploymentContext{ subscriptionId: "724467b5-bee4-484b-bf13-d6a5505d2b51", resourceGroup: "longterm" } |> DeploymentContext.with_device_login(login_cred)
+sub = "724467b5-bee4-484b-bf13-d6a5505d2b51"
+
+deploymentContext = %DeploymentContext{ subscriptionId: sub, resourceGroup: "longterm" } |> DeploymentContext.with_device_login(login_cred)
 
 Resource.subscription([], Context.new() |> Context.with_deployment_context(deploymentContext))
 
-~S"C:\Users\chgeuer\Desktop\f\1.json" |> DemoUtil.transform(deploymentContext, %{})
+"sample_files/1.json" |> DemoUtil.transform(deploymentContext, %{})
 
-~S"C:\Users\chgeuer\Desktop\automation\templates\azuretemplate.json" |> DemoUtil.transform(deploymentContext, %{"adminPassword" => "SuperSecret123.-##"})
+"sample_files/automation.json" |> DemoUtil.transform(deploymentContext, %{"adminPassword" => "SuperSecret123.-##"})
 ```

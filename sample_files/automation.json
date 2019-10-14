@@ -1,0 +1,470 @@
+{
+    /* Copyright (c) Microsoft Corporation.
+     * Licensed under the MIT License. */
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "2.0.0.0",
+    "parameters": {
+        "deploymentName": { "type": "string", "defaultValue": "chgp" },
+        "adminPassword": { "type": "securestring" }
+    },
+    "variables": {
+        "deploymentName": "[parameters('deploymentName')]",
+        "names": {
+            "keyvault": "[concat(variables('deploymentName'), '-kv')]",
+            "identity": "[concat(variables('deploymentName'), '-identity')]",
+            "vnet": "[concat(variables('deploymentName'), '-vnet')]",
+            "postgresql": "[concat(variables('deploymentName'), '-postgresql')]",
+            "automation": "[concat(variables('deploymentName'), '-auto')]",
+            "loganalytics": "[concat(variables('deploymentName'), '-loganalytics')]"
+        },
+        "automation": {
+            "hardwareProfileVmSize": "Standard_D2s_v3",
+            "imageName": "pack",
+            "scriptBaseURL": "https://raw.githubusercontent.com/chgeuer/azure_automation_postgresql_msi/master/serverscripts/",
+            "source": {
+                "repo": "https://raw.githubusercontent.com/chgeuer/azure_automation_postgresql_msi/",
+                "revision": "master"
+            }
+        },
+        "adminUserName": "[variables('deploymentName')]",
+        "adminPassword": "[parameters('adminPassword')]",
+        "postgresql": {
+            "administratorLogin": "[variables('deploymentName')]",
+            "administratorLoginPassword": "[parameters('adminPassword')]",
+            "database": "tenantdata"
+        },
+        "apiVersion": {
+            "keyvault_vaults": "2018-02-14",
+            "keyvault_vaults_secrets": "2018-02-14",
+            "managedidentity_userassignedidentities": "2018-11-30",
+            "virtualmachines": "2019-03-01",
+            "virtualmachines_extensions": "2019-03-01",
+            "virtualmachineimages": "2019-03-01",
+            "virtualmachineimages_imagetemplates": "2019-05-01-preview",
+            "publicIPAddresses": "2019-04-01",
+            "networkInterfaces": "2016-09-01",
+            "networkSecurityGroups": "2017-06-01",
+            "virtualNetworks": "2017-08-01",
+            "dbforpostgresql_servers": "2017-12-01-preview",
+            "automation_automationAccounts": "2015-10-31",
+            "automation_automationAccounts_runbooks": "2018-06-30",
+            "operationalInsights_workspaces": "2017-03-15-preview",
+            "authorization_roleassignments": "2018-09-01-preview"
+        },
+        "vnet": {
+            "addresses": {
+                "addressSpace": "10.0.0.0/16",
+                "subnet": {
+                    "automation": "10.0.250.0/24"
+                },
+                "subnetPrefix": {
+                    "automation": "10.0.250."
+                }
+            }
+        },
+        "automationWorkerCount": 2,
+        "roles": {
+            "Contributor": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]"
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "apiVersion": "[variables('apiVersion').managedidentity_userassignedidentities]",
+            "location": "[resourceGroup().location]",
+            "name": "[variables('names').identity]",
+            "tags": { "displayName": "User-assigned Identity" }
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "name": "[guid(resourceGroup().id, variables('names').identity)]",
+            "apiVersion": "[variables('apiVersion').authorization_roleassignments]",
+            "tags": { "displayName": "Role Assignment for Resource Group" },
+            "dependsOn": [ 
+                "[concat('Microsoft.ManagedIdentity/userAssignedIdentities/', variables('names').identity)]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[variables('roles').Contributor]",
+                "principalType": "ServicePrincipal",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('names').identity), variables('apiVersion').managedidentity_userassignedidentities).principalId]",
+                "scope": "[resourceGroup().id]"
+            }
+        },
+        {
+            "type": "Microsoft.DBforPostgreSQL/servers",
+            "apiVersion": "[variables('apiVersion').dbforpostgresql_servers]",
+            "location": "[resourceGroup().location]",
+            "name": "[variables('names').postgresql]",
+            "tags": {
+                "displayName": "PostgreSQL Database"
+            },
+            "sku": {
+                "family": "Gen5",
+                "capacity": 1,
+                "name": "B_Gen5_1",
+                "tier": "Basic"
+            },
+            "properties": {
+                "version": "11",
+                "createMode": "Default",
+                "administratorLogin": "[variables('postgresql').administratorLogin]",
+                "administratorLoginPassword": "[variables('postgresql').administratorLoginPassword]",
+                "sslEnforcement": "Enabled",
+                "storageProfile": {
+                    "storageMB": 5120,
+                    "backupRetentionDays": 7,
+                    "geoRedundantBackup": "Disabled",
+                    "storageAutoGrow": "Enabled"
+                }
+            },
+            "resources": [
+                {
+                    "type": "firewallRules",
+                    "apiVersion": "[variables('apiVersion').dbforpostgresql_servers]",
+                    "location": "[resourceGroup().location]",
+                    "name": "free-lunch",
+                    "tags": { "displayName": "!!! Whole Internet can connect." },
+                    "dependsOn": [ "[concat('Microsoft.DBforPostgreSQL/servers/', variables('names').postgresql)]" ],
+                    "properties": { "startIpAddress": "0.0.0.0", "endIpAddress": "255.255.255.255" }
+                },
+                {
+                    "type": "firewallRules",
+                    "apiVersion": "[variables('apiVersion').dbforpostgresql_servers]",
+                    "location": "[resourceGroup().location]",
+                    "name": "AllowAllWindowsAzureIps",
+                    "tags": { "displayName": "Azure IPs can access" },
+                    "dependsOn": [ "[concat('Microsoft.DBforPostgreSQL/servers/', variables('names').postgresql)]" ],
+                    "properties": { "startIpAddress": "0.0.0.0", "endIpAddress": "0.0.0.0" }
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults",
+            "name": "[variables('names').keyvault]",
+            "apiVersion": "[variables('apiVersion').keyvault_vaults]",
+            "location": "[resourceGroup().location]",
+            "tags": { "displayName": "Key Vault" },
+            "dependsOn": [ 
+                "[concat('Microsoft.ManagedIdentity/userAssignedIdentities/', variables('names').identity)]",
+                "[concat('Microsoft.DBforPostgreSQL/servers/', variables('names').postgresql)]"
+            ],
+            "properties": {
+                "tenantId": "[subscription().tenantId]",
+                "enabledForDeployment": false,
+                "enabledForDiskEncryption": false,
+                "enabledForTemplateDeployment": true,
+                "sku": { "name": "Standard", "family": "A" },
+                "networkAcls": { "value": { "defaultAction": "Allow", "bypass": "AzureServices" } },
+                "accessPolicies": [
+                    {
+                        "tenantId": "[subscription().tenantId]",
+                        "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('names').identity), variables('apiVersion').managedidentity_userassignedidentities).principalId]",
+                        "permissions": { "secrets": [ "get", "list" ] }
+                    }
+                ]
+            },
+            "resources": [
+                {
+                    "type": "secrets",
+                    "apiVersion": "[variables('apiVersion').keyvault_vaults_secrets]",
+                    "dependsOn": [ "[concat('Microsoft.KeyVault/vaults/', variables('names').keyvault)]" ],
+                    "name": "postgresdatabaseconnectionstring",
+                    "tags": { "displayName": "ODBC Connection string for .NET (and PowerShell)." },
+                    "properties": {
+                        "contentType": "string",
+                        "value": "[postgresql.createOdbcConnectionString(variables('names').postgresql, variables('postgresql').database, variables('postgresql').administratorLogin, variables('postgresql').administratorLoginPassword)]"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "name": "[variables('names').loganalytics]",
+            "apiVersion": "[variables('apiVersion').operationalInsights_workspaces]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "sku": { "name": "PerGB2018" },
+                "features": { "searchVersion": 1 }
+            }
+        },
+        {
+            "type": "Microsoft.Automation/automationAccounts",
+            "apiVersion": "[variables('apiVersion').automation_automationAccounts]",
+            "name": "[variables('names').automation]",
+            "location": "[resourceGroup().location]",
+            "tags": { "displayName": "Automation Account" },
+            "dependsOn": [ 
+                "[concat('Microsoft.ManagedIdentity/userAssignedIdentities/', variables('names').identity)]",
+                "[concat('Microsoft.OperationalInsights/workspaces/', variables('names').loganalytics)]" 
+            ],
+            "properties": { "sku": { "name": "Basic" } },
+            "resources": [
+                {
+                    "type": "Microsoft.Automation/automationAccounts/providers/roleAssignments",
+                    "name": "[concat(variables('names').automation, '/Microsoft.Authorization/', guid(resourceGroup().id))]",
+                    "apiVersion": "[variables('apiVersion').authorization_roleassignments]",
+                    "dependsOn": [ 
+                        "[concat('Microsoft.ManagedIdentity/userAssignedIdentities/', variables('names').identity)]",
+                        "[concat('Microsoft.Automation/automationAccounts/', variables('names').automation)]" 
+                    ],
+                    "properties": {
+                        "roleDefinitionId": "[variables('roles').Contributor]",
+                        "principalType": "ServicePrincipal",
+                        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('names').identity), variables('apiVersion').managedidentity_userassignedidentities).principalId]",
+                        "scope": "[resourceId('Microsoft.Automation/automationAccounts', variables('names').automation)]"
+                    }
+                },
+                {
+                    "type": "runbooks",
+                    "apiVersion": "[variables('apiVersion').automation_automationAccounts_runbooks]",
+                    "name": "PostgreSQL-Managed-Identity-Crawler",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [ "[concat('Microsoft.Automation/automationAccounts/', variables('names').automation)]" ],
+                    "tags": { "displayName": "A runbook which uses a managed identity to iterate over all resource groups" },
+                    "properties": {
+                        "description": "A runbook which uses a managed identity to iterate over all resource groups",
+                        "runbookType": "PowerShell",
+                        "publishContentLink": {
+                            "uri": "[concat(variables('automation').scriptBaseURL, 'ListResourcesAcrossSubscriptionsUserIdentity.ps1')]",
+                            "version": "1.0.0.0"
+                        },
+                        "logProgress": false, "logVerbose": false
+                    }
+                },
+                {
+                    "type": "variables",
+                    "apiVersion": "[variables('apiVersion').automation_automationAccounts]",
+                    "dependsOn": [ "[concat('Microsoft.Automation/automationAccounts/', variables('names').automation)]" ],
+                    "tags": { "displayName": "Variable containing the name of keyvault" },
+                    "name": "keyvaultname",
+                    "properties": {
+                      "value": "[automation.variableFromString(variables('names').keyvault)]",
+                      "isEncrypted": false
+                    }
+                },
+                {
+                    "type": "variables",
+                    "apiVersion": "[variables('apiVersion').automation_automationAccounts]",
+                    "dependsOn": [ "[concat('Microsoft.Automation/automationAccounts/', variables('names').automation)]" ],
+                    "name": "automationWorkerCount",
+                    "properties": {
+                      "value": "[automation.variableFromInt(variables('automationWorkerCount'))]",
+                      "isEncrypted": false
+                    }
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "[variables('apiVersion').networkSecurityGroups]",
+            "location": "[resourceGroup().location]",
+            "name": "[concat(variables('deploymentName'), '-nsg-automation')]",
+            "tags": { "displayName": "NetworkSecurityGroup Automation" },
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "inbound-rdp",
+                        "properties": {
+                            "priority": 100,
+                            "description": "Allow Inbound RDP",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "protocol": "Tcp",
+                            "sourceAddressPrefix": "Internet",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "[variables('vnet').addresses.subnet.automation]",
+                            "destinationPortRange": "3389"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "[variables('apiVersion').virtualNetworks]",
+            "name": "[variables('names').vnet]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkSecurityGroups/', concat(variables('deploymentName'), '-nsg-automation'))]"
+            ],
+            "tags": { "displayName": "A virtual network" },
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('vnet').addresses.addressSpace]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[concat(variables('deploymentName'), '-subnet-automation')]",
+                        "properties": {
+                            "addressPrefix": "[variables('vnet').addresses.subnet.automation]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', concat(variables('deploymentName'), '-nsg-automation'))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        { 
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "[variables('apiVersion').publicIPAddresses]",
+            "name": "[concat(variables('deploymentName'), '-vm-automation-', string(copyIndex()))]",
+            "copy": {
+                "name": "vm-automationworker-publicIP-copy",
+                "count": "[variables('automationWorkerCount')]"
+            },
+            "tags": { "displayName": "Public IP" },
+            "location": "[resourceGroup().location]",
+            "sku": { "name": "Basic" },
+            "properties": {
+                "idleTimeoutInMinutes": 30,
+                "publicIpAddressVersion": "IPv4"
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(variables('deploymentName'), '-nic-automation-', string(copyIndex()))]",
+            "apiVersion": "[variables('apiVersion').networkInterfaces]",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "nic-automation-copy",
+                "count": "[variables('automationWorkerCount')]"
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', variables('names').vnet)]",
+                "[concat('Microsoft.Network/publicIPAddresses/', concat(variables('deploymentName'), '-vm-automation-', string(copyIndex())))]"
+            ],
+            "tags": {
+                "displayName": "NIC Automation Worker"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIpAddressVersion": "IPv4",
+                            "privateIpAddress": "[concat(variables('vnet').addresses.subnetPrefix.automation, string(add(10, copyIndex())))]",
+                            "privateIPAllocationMethod": "Static",
+                            "subnet": { "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('names').vnet), '/subnets/', concat(variables('deploymentName'), '-subnet-automation'))]" },
+                            "publicIPAddress": { "id": "[concat(resourceId('Microsoft.Network/publicIPAddresses', concat(variables('deploymentName'), '-vm-automation-', string(copyIndex()))))]" }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[concat(variables('deploymentName'), '-vm-automation-', string(copyIndex()))]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "[variables('apiVersion').virtualmachines]",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "vm-automationworker-copy",
+                "count": "[variables('automationWorkerCount')]"
+            },
+            "dependsOn": [ 
+                "[concat('Microsoft.ManagedIdentity/userAssignedIdentities/', variables('names').identity)]",
+                "[concat('Microsoft.Network/networkInterfaces/', concat(variables('deploymentName'), '-nic-automation-', string(copyIndex())))]"
+            ],
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[resourceId(resourceGroup().name, 'Microsoft.ManagedIdentity/userAssignedIdentities', variables('names').identity)]": { }
+                }
+            },
+            "tags": {
+                "displayName": "An Azure Automation VM",
+                "automationaccountname": "[variables('names').automation]",
+                "hybridgroupname": "chgeuerautomation_hybrid_group",
+                "workspacename": "loganalyticsworkspacechgeuer1",
+                "keyvaultname": "[variables('names').keyvault]"
+            },
+            "properties": {
+                "networkProfile": { "networkInterfaces": [ { "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('deploymentName'), '-nic-automation-', string(copyIndex())))]" } ] },
+                "osProfile": {
+                    "computerName": "[concat('automation', string(copyIndex()))]",
+                    "adminUsername": "[variables('adminUserName')]",
+                    "adminPassword": "[variables('adminPassword')]",
+                    "windowsConfiguration": {
+                        "enableAutomaticUpdates": true,
+                        "provisionVMAgent": true
+                    }
+                },
+                "hardwareProfile": { "vmSize": "[variables('automation').hardwareProfileVmSize]" }, 
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2019-Datacenter",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "[concat(variables('deploymentName'), '-vm-automationworker-osdisk-', string(copyIndex()))]",
+                        "createOption": "FromImage",
+                        "diskSizeGB": 127,
+                        "managedDisk": { "storageAccountType": "Premium_LRS" }
+                    }
+                }
+            },
+            "resources": [
+                {
+                    "type": "extensions",
+                    "location": "[resourceGroup().location]",
+                    "name": "RegisterAzureAutomation",
+                    "apiVersion": "[variables('apiVersion').virtualmachines_extensions]",
+                    "dependsOn": [
+                        "[concat('Microsoft.Compute/virtualMachines/', concat(variables('deploymentName'), '-vm-automation-', string(copyIndex())))]"
+                    ],
+                    "properties": {
+                        "type": "CustomScriptExtension",
+                        "publisher": "Microsoft.Compute",
+                        "typeHandlerVersion": "1.9",
+                        "autoUpgradeMinorVersion": true,
+                        "settings": {
+                            "fileUris": [
+                                "[concat(variables('automation').source.repo, variables('automation').source.revision, '/serverscripts/InstallAzureAutomationPackages.ps1')]",
+                                "[concat(variables('automation').source.repo, variables('automation').source.revision, '/serverscripts/InstallPostgresqlODBCDriverSetup.ps1')]",
+                                "[concat(variables('automation').source.repo, variables('automation').source.revision, '/serverscripts/JoinAzureAutomationHybridWorkerGroup.ps1')]",
+                                "[concat(variables('automation').source.repo, variables('automation').source.revision, '/serverscripts/RegisterVM.ps1')]"
+                            ],
+                            "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File RegisterVM.ps1')]"
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "functions": [
+        {
+            "namespace": "automation",
+            "members": {
+                "variableFromString": {
+                    "parameters": [ { "type": "string", "name": "value" } ],
+                    "output": { "type": "string", "value": "[concat('\"', parameters('value'), '\"')]" }
+                },
+                "variableFromInt": {
+                    "parameters": [ { "type": "int", "name": "value" } ],
+                    "output": { "type": "int", "value": "[parameters('value')]" }
+                }
+            }
+        },
+        {
+            "namespace": "postgresql",
+            "members": {
+                "createOdbcConnectionString": {
+                    "parameters": [
+                        { "name": "server", "type": "string" },
+                        { "name": "database", "type": "string" },
+                        { "name": "username", "type": "string" },
+                        { "name": "password", "type": "string" }
+                    ],
+                    "output": {
+                        "value": "[concat('Driver={PostgreSQL UNICODE(x64)};Server=', parameters('server'), '.postgres.database.azure.com;Port=5432;Database=', parameters('database'), ';Uid=', parameters('username'), '@', parameters('server'), ';Pwd=', parameters('password'), ';Options=''autocommit=off'';sslmode=require;')]",
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    ]
+}

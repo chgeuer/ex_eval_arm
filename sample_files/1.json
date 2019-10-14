@@ -1,0 +1,71 @@
+/*
+alias Azure.TemplateLanguageExpressions.{Resource, Context, DeploymentContext, Evaluator.Resource}
+
+l = DemoUtil.login()
+
+deploymentContext = %DeploymentContext{ subscriptionId: "724467b5-bee4-484b-bf13-d6a5505d2b51", resourceGroup: "longterm" } |> DeploymentContext.with_device_login(l)
+
+Resource.subscription([], Context.new() |> Context.with_deployment_context(deploymentContext))
+~S"C:\Users\chgeuer\Desktop\f\1.json" |> DemoUtil.transform(deploymentContext, %{})
+*/
+{
+
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "2.0.0.0",
+	"parameters": {
+		"deploymentName": { "type": "string", "defaultValue": "somepre" },
+		"odbcbits": { 
+	   	"type": "int",    /* hello it */
+			"defaultValue": 64
+		}
+	},
+	"variables": {
+		"apiVersions": {
+			"storage": "2017-10-01"
+		},
+		"realResourceGroup": "longterm",
+		"realStorageAccount": "erlang2",
+		"somearray": [ 1, 2, "[3]"      ],
+		"sub": "[subscription()]",
+		"somename": "[string(createArray(1,2,3, variables('somearray')))]",
+		// kjhkjhö
+		"deploymentName": "[concat(parameters('deploymentName'), variables('somename'))]",
+		"h": "[postgresql.fun()]",
+		"names": {
+			"postgresql": "[concat(variables('deploymentName'), '-postgresql')]"
+		},
+		"adminUserName": "[variables('deploymentName')]",
+		"connectionString": "[postgresql.createOdbcConnectionString(variables('names').postgresql, 'tenantdata', parameters('odbcbits'))]"
+	},
+	"resources": [
+
+	],
+	"functions": [
+		{
+			"namespace": "postgresql",
+			"members": {
+				"fun": {
+					"parameters": [],
+					"output": { "value": "[newGuid()]", "type": "string" }
+				},
+				"createOdbcConnectionString": {
+					"parameters": [
+							{ "name": "server", "type": "string" },
+							{ "name": "database", "type": "string" },
+							{ "name": "odbc_bits", "type": "int" }
+					],
+					"output": {
+						"value": "[concat('Driver={PostgreSQL UNICODE(x', string(parameters('odbc_bits')), ')};Server=', parameters('server'), '.postgres.database.azure.com;Port=5432;Database=', parameters('database'), ';Options=''autocommit=off'';sslmode=require;')]",
+						"type": "string"
+					}
+				}
+			}
+		}
+	],
+	"outputs": {
+		"connectionString": { "type": "string", "value": "[variables('connectionString')]" },
+		"o": { "type": "object", "value": "[variables('somearray')]" },
+		"blobEndpoint": { "type": "object", "value": "[reference(resourceId(variables('realResourceGroup'), 'Microsoft.Storage/storageAccounts', variables('realStorageAccount')), variables('apiVersions').storage).primaryEndpoints.blob]" },
+		"location": { "type": "object", "value": "[reference(resourceId(variables('realResourceGroup'), 'Microsoft.Storage/storageAccounts', variables('realStorageAccount')), variables('apiVersions').storage, 'Full').location]" }
+	}
+}
