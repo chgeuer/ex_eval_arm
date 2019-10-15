@@ -59,3 +59,7 @@ Resource.subscription([], Context.new() |> Context.with_deployment_context(deplo
 
 "sample_files/automation.json" |> DemoUtil.transform(deploymentContext, %{"adminPassword" => "SuperSecret123.-##"})
 ```
+
+## Other projects in that problem space
+
+- Check [`ChrisLGardner/ArmTemplateValidation`](https://github.com/ChrisLGardner/ArmTemplateValidation) for a PowerShell-based implementation by [@HalbaradKenafin](https://twitter.com/HalbaradKenafin/).
